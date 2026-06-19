@@ -39,7 +39,7 @@
 | P1-05 | 分析任务管理 API | ✅ 已完成 | P0-01 | 分析任务的创建、查询、控制 |
 | P1-06 | 百科功能 API | ✅ 已完成 | P1-04 | 百科分类统计、条目列表、概念详情 |
 | P1-07 | 世界结构 API | ✅ 已完成 | P1-04 | 获取世界结构、层级重建 |
-| P1-08 | 关系图 API | 📋 待执行 | P1-04 | 获取人物关系图数据 |
+| P1-08 | 关系图 API | ✅ 已完成 | P1-04 | 获取人物关系图数据 |
 | P1-09 | 对话管理 API | 📋 待执行 | P0-01 | 对话列表、创建、消息管理 |
 | P1-10 | 聊天 WebSocket | 📋 待执行 | P1-09 | 实时聊天交互 |
 | P1-11 | 分析进度 WebSocket | 📋 待执行 | P1-05 | 分析进度实时推送 |
@@ -64,24 +64,29 @@
 
 ## 当前进度
 
-### 已完成任务数: 12/32 (38%)
+### 已完成任务数: 13/32 (41%)
 
 ### P0: 5/5 (100%) ✓
-### P1: 7/11 (64%)
+### P1: 8/11 (73%)
 ### P2: 0/9 (0%)
 
 ---
 
 ## 下一个待执行任务
 
-**P1-08 - 关系图 API**
+**P1-09 - 对话管理 API**
 
-**目标**: 实现获取人物关系图数据的API
+**目标**: 实现对话列表、创建、消息管理的API
 
 **需要创建/修改的文件**:
-1. `GraphController.java` - 关系图控制器
+1. `Conversation.java` - 对话实体类
+2. `ConversationMessage.java` - 对话消息实体类
+3. `ConversationRepository.java` - 对话数据访问层
+4. `ConversationController.java` - 对话控制器
 
 **API端点**:
-- `GET /api/novels/{novelId}/graph` - 获取人物关系图数据
+- `GET /api/novels/{novelId}/conversations` - 获取对话列表
+- `POST /api/novels/{novelId}/conversations` - 创建对话
+- `GET /api/novels/{novelId}/conversations/{conversationId}/messages` - 获取消息列表
 
-**数据库表**: `chapter_facts`（从章节事实中聚合人物关系）
+**数据库表**: `conversations`, `conversation_messages`
