@@ -1,3 +1,4 @@
+$content = @'
 package com.aireader.v2.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -8,7 +9,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * 鍒嗘瀽浠诲姟瀹炰綋绫? * 瀵瑰簲Python鐨凙nalysisTask鏁版嵁妯″瀷
+ * 分析任务实体类
+ * 对应Python的AnalysisTask数据模型
  */
 @Entity
 @Table(name = "analysis_tasks", indexes = {
@@ -57,3 +59,6 @@ public class AnalysisTask {
     @Column(name = "timing_summary", columnDefinition = "TEXT")
     private String timingSummary;
 }
+'@
+
+Set-Content -Path "e:\kaifa\other\miniReader\backend-java\src\main\java\com\aireader\v2\model\entity\AnalysisTask.java" -Value $content -Encoding UTF8
