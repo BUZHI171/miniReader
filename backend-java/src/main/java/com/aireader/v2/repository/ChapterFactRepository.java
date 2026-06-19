@@ -15,4 +15,8 @@ public interface ChapterFactRepository extends JpaRepository<ChapterFact, Long> 
     Optional<ChapterFact> findByNovelIdAndChapterId(String novelId, Long chapterId);
     
     List<ChapterFact> findByChapterId(Long chapterId);
+
+    void deleteByNovelIdAndChapterId(String novelId, Long chapterId);
+
+    void deleteByChapterId(Long chapterId);
 }

@@ -16,10 +16,10 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * 鍒嗘瀽浠诲姟鎺у埗鍣? * 瀵瑰簲Python鐨凙nalysis API璺敱
+ * 鍒嗘瀽浠诲姟鎺у埗鍣?
+ * 瀵瑰簲Python鐨凙nalysis API璺敱
  */
 @RestController
-@RequestMapping("/api/novels/{novelId}/analysis")
 @RequiredArgsConstructor
 @Slf4j
 public class AnalysisController {
@@ -28,8 +28,40 @@ public class AnalysisController {
     private final ChapterRepository chapterRepository;
 
     /**
-     * 鑾峰彇鍒嗘瀽浠诲姟鐘舵€?     */
-    @GetMapping
+     * 鑾峰彇鎵�鏈夊凡鍚�姹俛pi/analysis/active
+     */
+    @GetMapping("/api/analysis/active")
+    public ResponseEntity<Map<String, Object>> getAllActiveTasks() {
+        List<AnalysisTask> runningTasks = analysisTaskRepository.findByStatus("running");
+        List<AnalysisTask> pausedTasks = analysisTaskRepository.findByStatus("paused");
+
+        // 褰卞叆running浠诲姟浠�
+        Map<String, String> result = new HashMap<>();
+        for (AnalysisTask task : runningTasks) {
+            result.put(task.getNovelId(), "running");
+        }
+        for (AnalysisTask task : pausedTasks) {
+            if (!result.containsKey(task.getNovelId())) {
+                result.put(task.getNovelId(), "paused");
+            }
+        }
+
+        List<Map<String, String>> items = result.entrySet().stream()
+                .map(e -> {
+                    Map<String, String> item = new HashMap<>();
+                    item.put("novel_id", e.getKey());
+                    item.put("status", e.getValue());
+                    return item;
+                })
+                .toList();
+
+        return ResponseEntity.ok(Map.of("items", items));
+    }
+
+    /**
+     * 鑾峰彇鍒嗘瀽浠诲姟鐘舵€?
+     */
+    @GetMapping("/api/novels/{novelId}/analysis")
     public ResponseEntity<Map<String, Object>> getAnalysisStatus(@PathVariable String novelId) {
         Map<String, Object> result = new HashMap<>();
         
@@ -58,15 +90,16 @@ public class AnalysisController {
     /**
      * 鑾峰彇娲昏穬鍒嗘瀽浠诲姟鍒楄〃
      */
-    @GetMapping("/active")
-    public ResponseEntity<Map<String, Object>> getActiveTasks() {
+    @GetMapping("/api/novels/{novelId}/analysis/active")
+    public ResponseEntity<Map<String, Object>> getActiveTasks(@PathVariable String novelId) {
         List<AnalysisTask> activeTasks = analysisTaskRepository.findByStatus("running");
         return ResponseEntity.ok(Map.of("tasks", activeTasks));
     }
 
     /**
-     * 寮€濮嬪垎鏋愪换鍔?     */
-    @PostMapping("/start")
+     * 寮€濮嬪垎鏋愪换鍔?
+     */
+    @PostMapping("/api/novels/{novelId}/analysis/start")
     public ResponseEntity<Map<String, Object>> startAnalysis(@PathVariable String novelId) {
         Map<String, Object> result = new HashMap<>();
         
@@ -115,7 +148,7 @@ public class AnalysisController {
     /**
      * 鏆傚仠鍒嗘瀽浠诲姟
      */
-    @PostMapping("/pause")
+    @PostMapping("/api/novels/{novelId}/analysis/pause")
     public ResponseEntity<Map<String, Object>> pauseAnalysis(@PathVariable String novelId) {
         Map<String, Object> result = new HashMap<>();
         
@@ -143,9 +176,9 @@ public class AnalysisController {
     }
 
     /**
-     * 鎭㈠鍒嗘瀽浠诲姟
+     * 鎭㈠畲鍒嗘瀽浠诲姟
      */
-    @PostMapping("/resume")
+    @PostMapping("/api/novels/{novelId}/analysis/resume")
     public ResponseEntity<Map<String, Object>> resumeAnalysis(@PathVariable String novelId) {
         Map<String, Object> result = new HashMap<>();
         
@@ -175,7 +208,7 @@ public class AnalysisController {
     /**
      * 鍙栨秷鍒嗘瀽浠诲姟
      */
-    @PostMapping("/cancel")
+    @PostMapping("/api/novels/{novelId}/analysis/cancel")
     public ResponseEntity<Map<String, Object>> cancelAnalysis(@PathVariable String novelId) {
         Map<String, Object> result = new HashMap<>();
         
@@ -197,8 +230,9 @@ public class AnalysisController {
     }
 
     /**
-     * 鑾峰彇鏈€鏂颁换鍔′俊鎭?     */
-    @GetMapping("/latest")
+     * 鑾峰彇鏈�鏂颁换鍔′俊鎭?
+     */
+    @GetMapping("/api/novels/{novelId}/analysis/latest")
     public ResponseEntity<Map<String, Object>> getLatestTask(@PathVariable String novelId) {
         var taskOpt = analysisTaskRepository.findByNovelId(novelId);
         

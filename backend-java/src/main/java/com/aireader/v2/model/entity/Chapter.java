@@ -79,4 +79,8 @@ public class Chapter {
     @JsonProperty("error_type")
     @Column(name = "error_type")
     private String errorType;
+
+    @JsonProperty("updated_at")
+    @Transient
+    private String updatedAt;
 }

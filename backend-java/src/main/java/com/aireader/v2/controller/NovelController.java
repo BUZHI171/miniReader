@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -250,5 +251,115 @@ public class NovelController {
         }
         
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 章节全文搜索
+     * GET /api/novels/{novelId}/search?q=keyword
+     */
+    @GetMapping("/{novelId}/search")
+    public ResponseEntity<Map<String, Object>> searchChapters(
+            @PathVariable String novelId,
+            @RequestParam("q") String query,
+            @RequestParam(value = "limit", defaultValue = "50") int limit) {
+
+        if (!novelService.getNovel(novelId).isPresent()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        if (query == null || query.trim().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        String searchPattern = "%" + query.toLowerCase() + "%";
+        List<Chapter> chapters = chapterRepository.findByNovelIdOrderByChapterNum(novelId);
+
+        List<Map<String, Object>> results = new ArrayList<>();
+        for (Chapter chapter : chapters) {
+            if (results.size() >= limit) break;
+
+            String content = chapter.getContent();
+            if (content == null) continue;
+
+            String lowerContent = content.toLowerCase();
+            String lowerQuery = query.toLowerCase();
+
+            int idx = lowerContent.indexOf(lowerQuery);
+            if (idx >= 0) {
+                // 提取上下文片段
+                int start = Math.max(0, idx - 50);
+                int end = Math.min(content.length(), idx + query.length() + 50);
+                String snippet = content.substring(start, end);
+
+                if (start > 0) {
+                    snippet = "..." + snippet;
+                }
+                if (end < content.length()) {
+                    snippet = snippet + "...";
+                }
+
+                Map<String, Object> result = new HashMap<>();
+                result.put("chapter_num", chapter.getChapterNum());
+                result.put("title", chapter.getTitle());
+                result.put("snippet", snippet);
+                results.add(result);
+            }
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("results", results);
+        response.put("total", results.size());
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 批量排除或恢复章节
+     * PATCH /api/novels/{novelId}/chapters/exclude
+     */
+    @PatchMapping("/{novelId}/chapters/exclude")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> excludeChapters(
+            @PathVariable String novelId,
+            @RequestBody Map<String, Object> request) {
+
+        @SuppressWarnings("unchecked")
+        List<Integer> chapterNums = (List<Integer>) request.get("chapter_nums");
+        Boolean excluded = (Boolean) request.get("excluded");
+
+        if (chapterNums == null || chapterNums.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // 更新章节排除状态 - 使用原生SQL避免实体映射问题
+        int updated = 0;
+        for (Integer chapterNum : chapterNums) {
+            String excludeValue = (excluded != null && excluded) ? "1" : "0";
+            String currentTime = String.valueOf(System.currentTimeMillis());
+
+            // 先查询章节ID
+            List<Object[]> results = chapterRepository.findChapterId(novelId, chapterNum);
+            if (!results.isEmpty()) {
+                Long chapterId = ((Number) results.get(0)[0]).longValue();
+
+                // 更新is_excluded和analysis_status
+                if (excluded != null && excluded) {
+                    // 排除：只更新is_excluded
+                    chapterRepository.updateChapterExcludedOnly(novelId, chapterNum, excludeValue, currentTime);
+                    // 删除关联的chapter_facts
+                    chapterFactRepository.deleteByChapterId(chapterId);
+                } else {
+                    // 恢复：更新is_excluded和analysis_status
+                    chapterRepository.updateChapterExcluded(novelId, chapterNum, excludeValue, "pending", currentTime);
+                }
+
+                updated++;
+            }
+        }
+
+        // 返回简单响应
+        Map<String, Object> response = new HashMap<>();
+        response.put("ok", true);
+        response.put("updated", updated);
+        return ResponseEntity.ok(response);
     }
 }
