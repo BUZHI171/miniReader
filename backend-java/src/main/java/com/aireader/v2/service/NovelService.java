@@ -173,10 +173,23 @@ public class NovelService {
         dto.setSynopsis(novel.getSynopsis());
         dto.setCreatedAt(novel.getCreatedAt());
         dto.setUpdatedAt(novel.getUpdatedAt());
+        dto.setLastOpened(null); // TODO: 从用户状态获取
         
         // 统计已完成章节数
         Long completedCount = chapterRepository.countCompletedByNovelId(novel.getId());
         dto.setAnalyzedChapters(completedCount != null ? completedCount.intValue() : 0);
+        
+        // 计算分析进度
+        if (novel.getTotalChapters() != null && novel.getTotalChapters() > 0) {
+            int progress = (int) ((dto.getAnalyzedChapters() * 100.0) / novel.getTotalChapters());
+            dto.setAnalysisProgress(progress);
+        } else {
+            dto.setAnalysisProgress(0);
+        }
+        
+        // 统计失败章节数
+        List<Chapter> failedChapters = chapterRepository.findFailedByNovelId(novel.getId());
+        dto.setFailedCount(failedChapters != null ? failedChapters.size() : 0);
         
         return dto;
     }
