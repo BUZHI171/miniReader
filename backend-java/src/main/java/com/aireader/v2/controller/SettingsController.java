@@ -61,7 +61,7 @@ public class SettingsController {
         qwen4b.put("display_name", "Qwen3 4B");
         qwen4b.put("size_gb", 2.5);
         qwen4b.put("min_ram_gb", 8);
-        qwen4b.put("description", "杞婚噺妯″瀷锛岄€熷害蹇紝閫傚悎蹇€熷垎鏋?);
+        qwen4b.put("description", "杞婚噺妯″瀷锛岄€熷害蹇紝閫傚悎蹇€熷垎鏋?");
         qwen4b.put("recommended", false);
         qwen4b.put("installed", false);
         recommendations.add(qwen4b);
@@ -116,7 +116,7 @@ public class SettingsController {
 
         Map<String, Object> anthropic = new HashMap<>();
         anthropic.put("id", "anthropic");
-        anthropic.put("name", "Anthropic锛圕laude锛?);
+        anthropic.put("name", "Anthropic锛圕laude锛?");
         anthropic.put("base_url", "https://api.anthropic.com");
         anthropic.put("default_model", "claude-sonnet-4-6");
         anthropic.put("models", List.of("claude-opus-4-7", "claude-sonnet-4-6", "claude-haiku-4-5"));

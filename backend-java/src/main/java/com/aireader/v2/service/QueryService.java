@@ -5,6 +5,7 @@ import com.aireader.v2.model.entity.ChapterFact;
 import com.aireader.v2.model.entity.Message;
 import com.aireader.v2.repository.ChapterFactRepository;
 import com.aireader.v2.repository.MessageRepository;
+import com.aireader.v2.util.IdGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -200,6 +201,7 @@ public class QueryService {
         try {
             // 保存用户消息
             Message userMsg = Message.builder()
+                    .id(IdGenerator.generateId())
                     .conversationId(conversationId)
                     .role("user")
                     .content(question)
@@ -209,6 +211,7 @@ public class QueryService {
             // 保存助手消息
             String sourcesJson = objectMapper.writeValueAsString(sources);
             Message assistantMsg = Message.builder()
+                    .id(IdGenerator.generateId())
                     .conversationId(conversationId)
                     .role("assistant")
                     .content(answer)

@@ -16,7 +16,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class Bookmark {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
     private Long id;
 

@@ -31,7 +31,7 @@ public class PrescanController {
         Novel novel = novelRepository.findById(novelId).orElse(null);
         if (novel == null) {
             Map<String, Object> error = new HashMap<>();
-            error.put("error", "灏忚涓嶅瓨鍦?);
+            error.put("error", "灏忚涓嶅瓨鍦?");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         }
 
@@ -59,7 +59,7 @@ public class PrescanController {
         Novel novel = novelRepository.findById(novelId).orElse(null);
         if (novel == null) {
             Map<String, Object> error = new HashMap<>();
-            error.put("error", "灏忚涓嶅瓨鍦?);
+            error.put("error", "灏忚涓嶅瓨鍦?");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         }
 
@@ -82,7 +82,7 @@ public class PrescanController {
         Novel novel = novelRepository.findById(novelId).orElse(null);
         if (novel == null) {
             Map<String, Object> error = new HashMap<>();
-            error.put("error", "灏忚涓嶅瓨鍦?);
+            error.put("error", "灏忚涓嶅瓨鍦?");
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
         }
 

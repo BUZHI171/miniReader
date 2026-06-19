@@ -6,6 +6,7 @@ import com.aireader.v2.model.entity.Chapter;
 import com.aireader.v2.model.entity.Novel;
 import com.aireader.v2.repository.ChapterRepository;
 import com.aireader.v2.repository.NovelRepository;
+import com.aireader.v2.util.IdGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -136,6 +137,7 @@ public class NovelService {
             ChapterPreview preview = chapterPreviews.get(i);
             if (!excludedSet.contains(i + 1)) {
                 Chapter chapter = Chapter.builder()
+                        .id(IdGenerator.generateId())
                         .novelId(novelId)
                         .chapterNum(i + 1)
                         .title(preview.getTitle())

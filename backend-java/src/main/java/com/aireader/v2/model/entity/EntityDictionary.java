@@ -19,7 +19,6 @@ import java.util.List;
 public class EntityDictionary {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "novel_id", nullable = false)
@@ -51,16 +50,20 @@ public class EntityDictionary {
     @Column(name = "sample_context")
     private String sampleContext;
 
+    private static final com.fasterxml.jackson.databind.ObjectMapper OBJECT_MAPPER = new com.fasterxml.jackson.databind.ObjectMapper();
+
+    static {
+        OBJECT_MAPPER.findAndRegisterModules();
+    }
+
     @Transient
     public List<String> getAliasesList() {
         if (aliases == null || aliases.isEmpty()) {
             return new ArrayList<>();
         }
         try {
-            return com.fasterxml.jackson.databind.ObjectMapper
-                .findAndRegisterModules()
-                .readValue(aliases, 
-                    new com.fasterxml.jackson.core.type.TypeReference<List<String>>() {});
+            return OBJECT_MAPPER.readValue(aliases,
+                new com.fasterxml.jackson.core.type.TypeReference<List<String>>() {});
         } catch (Exception e) {
             return new ArrayList<>();
         }
@@ -68,9 +71,7 @@ public class EntityDictionary {
 
     public void setAliasesList(List<String> aliasesList) {
         try {
-            this.aliases = com.fasterxml.jackson.databind.ObjectMapper
-                .findAndRegisterModules()
-                .writeValueAsString(aliasesList);
+            this.aliases = OBJECT_MAPPER.writeValueAsString(aliasesList);
         } catch (Exception e) {
             this.aliases = "[]";
         }

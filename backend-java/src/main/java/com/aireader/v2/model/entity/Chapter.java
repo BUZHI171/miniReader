@@ -24,7 +24,6 @@ import java.time.LocalDateTime;
 public class Chapter {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JsonProperty("id")
     @Column(name = "id")
     private Long id;

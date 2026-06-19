@@ -114,15 +114,15 @@ public class SeriesBibleController {
 
         Map<String, Object> complete = new HashMap<>();
         complete.put("id", "complete");
-        complete.put("name", "瀹屾暣鐗?);
-        complete.put("description", "鍖呭惈鎵€鏈夋ā鍧楃殑瀹屾暣璁惧畾闆?);
+        complete.put("name", "瀹屾暣鐗?");
+        complete.put("description", "鍖呭惈鎵€鏈夋ā鍧楃殑瀹屾暣璁惧畾闆?");
         complete.put("modules", List.of("overview", "characters", "locations", "relationships", "events", "timeline"));
         templates.add(complete);
 
         Map<String, Object> author = new HashMap<>();
         author.put("id", "author");
         author.put("name", "浣滆€呯増");
-        author.put("description", "閫傚悎浣滆€呭弬鑰冪殑绮剧畝鐗?);
+        author.put("description", "閫傚悎浣滆€呭弬鑰冪殑绮剧畝鐗?");
         author.put("modules", List.of("overview", "characters", "locations"));
         templates.add(author);
 

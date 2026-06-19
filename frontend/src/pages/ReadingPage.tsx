@@ -37,7 +37,31 @@ import { useTourStore, TOUR_STEPS, TOTAL_TOUR_STEPS } from "@/stores/tourStore"
 import { recordTabVisit } from "@/lib/tabTracking"
 import { novelPath } from "@/lib/novelPaths"
 
-// ── Entity type colors for filter chips ──────────
+// ── Smooth scroll utility ──────────────────────────
+
+function smoothScrollTo(element: HTMLElement, targetScroll: number, duration: number = 500, onComplete?: () => void) {
+  const startScroll = element.scrollTop
+  const diff = targetScroll - startScroll
+  const startTime = performance.now()
+
+  function animate(currentTime: number) {
+    const elapsed = currentTime - startTime
+    const progress = Math.min(elapsed / duration, 1)
+    
+    // 使用缓动函数
+    const easeProgress = 1 - Math.pow(1 - progress, 3)
+    
+    element.scrollTop = startScroll + diff * easeProgress
+    
+    if (progress < 1) {
+      requestAnimationFrame(animate)
+    } else if (onComplete) {
+      onComplete()
+    }
+  }
+
+  requestAnimationFrame(animate)
+}
 const ENTITY_TYPE_LABELS: { type: string; label: string; color: string }[] = [
   { type: "person", label: "人物", color: "bg-blue-500" },
   { type: "location", label: "地点", color: "bg-green-500" },
@@ -98,7 +122,7 @@ function TocSidebar({
 }: {
   currentChapterNum: number
   bookmarks: Bookmark[]
-  onSelect: (num: number) => void
+  onSelect: (num: number, scrollPosition?: number) => void
   onClose: () => void
   onBookmarkDelete: (id: number) => void
 }) {
@@ -193,9 +217,9 @@ function TocSidebar({
             <div key={bm.id} className="flex items-center gap-1 px-3 py-1 text-xs hover:bg-accent">
               <button
                 className="flex-1 truncate text-left text-primary hover:underline"
-                onClick={() => onSelect(bm.chapter_num)}
+                onClick={() => onSelect(bm.chapter_num, bm.scroll_position)}
               >
-                第{bm.chapter_num}章 {bm.note && `- ${bm.note}`}
+                第{bm.chapter_num}章 {bm.scroll_position != null && Math.round(bm.scroll_position * 100) + '%'} {bm.note && `- ${bm.note}`}
               </button>
               <button
                 className="shrink-0 text-muted-foreground hover:text-destructive"
@@ -419,6 +443,10 @@ export default function ReadingPage() {
   // Scroll progress (1.2)
   const [scrollProgress, setScrollProgress] = useState(0)
 
+  // Scroll hint (for bookmark navigation)
+  const [scrollHint, setScrollHint] = useState<{ show: boolean; reached: boolean }>({ show: false, reached: false })
+  const scrollHintTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // Bookmarks (3.1)
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([])
 
@@ -522,9 +550,9 @@ export default function ReadingPage() {
         if (userState.scroll_position && contentRef.current) {
           requestAnimationFrame(() => {
             if (contentRef.current) {
-              contentRef.current.scrollTop =
-                userState.scroll_position *
-                contentRef.current.scrollHeight
+              // 等待内容完全渲染后再滚动
+              const targetScroll = userState.scroll_position * contentRef.current.scrollHeight
+              smoothScrollTo(contentRef.current, targetScroll)
             }
           })
         }
@@ -635,9 +663,14 @@ export default function ReadingPage() {
 
   // Navigate to a chapter
   const goToChapter = useCallback(
-    async (chapterNum: number) => {
+    async (chapterNum: number, scrollPosition?: number) => {
       if (!novelId) return
       savePosition()
+      // 切换章节时隐藏提示
+      setScrollHint({ show: false, reached: false })
+      if (scrollHintTimeoutRef.current) {
+        clearTimeout(scrollHintTimeoutRef.current)
+      }
 
       const gen = ++navGenerationRef.current
       setLoading(true)
@@ -669,7 +702,41 @@ export default function ReadingPage() {
           setEntities(chapterEntityList)
         }
 
-        if (contentRef.current) {
+        // Apply scroll position (if provided, e.g., from bookmark click)
+        if (contentRef.current && scrollPosition != null) {
+          requestAnimationFrame(() => {
+            if (contentRef.current) {
+              const targetScroll = scrollPosition * contentRef.current.scrollHeight
+              const currentScroll = contentRef.current.scrollTop
+              const threshold = 50 // 50像素阈值
+
+              if (Math.abs(targetScroll - currentScroll) > threshold) {
+                // 需要滚动
+                setScrollHint({ show: true, reached: false })
+                // 清除之前的定时器
+                if (scrollHintTimeoutRef.current) {
+                  clearTimeout(scrollHintTimeoutRef.current)
+                }
+                smoothScrollTo(contentRef.current, targetScroll, 500, () => {
+                  // 滚动完成后显示"已到达"提示，然后隐藏
+                  setScrollHint({ show: true, reached: true })
+                  scrollHintTimeoutRef.current = setTimeout(() => {
+                    setScrollHint({ show: false, reached: false })
+                  }, 1500)
+                })
+              } else {
+                // 已经在正确位置附近，显示"已到达"提示
+                setScrollHint({ show: true, reached: true })
+                if (scrollHintTimeoutRef.current) {
+                  clearTimeout(scrollHintTimeoutRef.current)
+                }
+                scrollHintTimeoutRef.current = setTimeout(() => {
+                  setScrollHint({ show: false, reached: false })
+                }, 1500)
+              }
+            }
+          })
+        } else if (contentRef.current) {
           contentRef.current.scrollTop = 0
         }
 
@@ -1049,6 +1116,28 @@ export default function ReadingPage() {
 
         {/* Chapter content */}
         <div ref={contentRef} className="flex-1 overflow-y-auto" onScroll={handleContentScroll}>
+          {/* Scroll hint for bookmark navigation - fixed position */}
+          {scrollHint.show && (
+            <div className="sticky top-4 z-10 mx-auto flex max-w-3xl items-center justify-center">
+              <div className="flex items-center gap-2 rounded-full bg-primary/90 px-4 py-2 text-sm text-primary-foreground shadow-lg animate-in fade-in zoom-in-95 duration-200">
+                {scrollHint.reached ? (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4">
+                      <path d="M20 6 9 17l-5-5"/>
+                    </svg>
+                    <span>已到达书签位置</span>
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4">
+                      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
+                    </svg>
+                    <span>跳转到书签位置...</span>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
           <article className="mx-auto max-w-3xl px-8 py-8">
             {/* Guided tour bubble — Step 1: entity highlight */}
             <ReadingTourBubble isSample={!!novel?.is_sample} hasContent={!!currentChapter} />

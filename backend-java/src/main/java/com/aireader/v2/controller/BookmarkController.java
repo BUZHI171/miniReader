@@ -3,6 +3,7 @@ package com.aireader.v2.controller;
 import com.aireader.v2.model.entity.Bookmark;
 import com.aireader.v2.repository.BookmarkRepository;
 import com.aireader.v2.repository.NovelRepository;
+import com.aireader.v2.util.IdGenerator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -56,6 +57,7 @@ public class BookmarkController {
 
         String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
         Bookmark bookmark = Bookmark.builder()
+                .id(IdGenerator.generateId())
                 .novelId(novelId)
                 .chapterNum(request.getChapterNum())
                 .scrollPosition(request.getScrollPosition())
