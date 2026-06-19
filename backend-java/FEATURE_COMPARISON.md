@@ -99,9 +99,9 @@
 
 | 功能名称 | 功能描述 | Python实现文件 | Java实现状态 | 优先级 |
 |---------|---------|--------------|-------------|--------|
-| 获取地图数据 | 获取地图位置、轨迹等数据 | `backend/src/api/routes/map.py` | ✗ 未实现 | P1 |
-| 保存位置覆盖 | 保存用户位置覆盖 | `backend/src/api/routes/map.py` | ✗ 未实现 | P2 |
-| 获取地形图 | 获取生成的地形PNG | `backend/src/api/routes/map.py` | ✗ 未实现 | P2 |
+| 获取地图数据 | 获取地图位置、轨迹等数据 | `backend/src/api/routes/map.py` | ✓ 已实现 | P1 |
+| 保存位置覆盖 | 保存用户位置覆盖 | `backend/src/api/routes/map.py` | ✓ 已实现 | P2 |
+| 获取地形图 | 获取生成的地形PNG | `backend/src/api/routes/map.py` | ✓ 已实现 | P2 |
 
 ---
 
@@ -143,9 +143,9 @@
 
 | 功能名称 | 功能描述 | Python实现文件 | Java实现状态 | 优先级 |
 |---------|---------|--------------|-------------|--------|
-| 触发预扫描 | 手动触发预扫描 | `backend/src/api/routes/prescan.py` | ✗ 未实现 | P2 |
-| 预扫描状态 | 查询预扫描状态 | `backend/src/api/routes/prescan.py` | ✗ 未实现 | P2 |
-| 实体词典 | 获取实体词典内容 | `backend/src/api/routes/prescan.py` | ✗ 未实现 | P2 |
+| 触发预扫描 | 手动触发预扫描 | `backend/src/api/routes/prescan.py` | ✓ 已实现 | P2 |
+| 预扫描状态 | 查询预扫描状态 | `backend/src/api/routes/prescan.py` | ✓ 已实现 | P2 |
+| 实体词典 | 获取实体词典内容 | `backend/src/api/routes/prescan.py` | ✓ 已实现 | P2 |
 
 ---
 
@@ -153,21 +153,21 @@
 
 | 功能名称 | 功能描述 | Python实现文件 | Java实现状态 | 优先级 |
 |---------|---------|--------------|-------------|--------|
-| 获取设置 | 获取当前LLM配置 | `backend/src/api/routes/settings.py` | ✗ 未实现 | P0 |
+| 获取设置 | 获取当前LLM配置 | `backend/src/api/routes/settings.py` | ✓ 已实现 | P0 |
 | 健康检查 | 检查LLM连接状态 | `backend/src/api/routes/settings.py` | ✓ 部分实现 | P0 |
 | 启动Ollama | 尝试启动Ollama | `backend/src/api/routes/settings.py` | ✗ 未实现 | P2 |
-| 硬件信息 | 获取系统硬件信息 | `backend/src/api/routes/settings.py` | ✗ 未实现 | P2 |
-| 模型推荐 | 获取推荐模型列表 | `backend/src/api/routes/settings.py` | ✗ 未实现 | P2 |
+| 硬件信息 | 获取系统硬件信息 | `backend/src/api/routes/settings.py` | ✓ 已实现 | P2 |
+| 模型推荐 | 获取推荐模型列表 | `backend/src/api/routes/settings.py` | ✓ 已实现 | P2 |
 | 拉取模型 | 拉取Ollama模型(SSE) | `backend/src/api/routes/settings.py` | ✗ 未实现 | P2 |
 | 设置默认模型 | 设置默认Ollama模型 | `backend/src/api/routes/settings.py` | ✗ 未实现 | P2 |
-| 云服务商列表 | 获取云LLM服务商列表 | `backend/src/api/routes/settings.py` | ✗ 未实现 | P2 |
-| 云配置获取 | 获取云LLM配置 | `backend/src/api/routes/settings.py` | ✗ 未实现 | P2 |
-| 云配置保存 | 保存云LLM配置 | `backend/src/api/routes/settings.py` | ✗ 未实现 | P2 |
-| 云API验证 | 测试云LLM API连接 | `backend/src/api/routes/settings.py` | ✗ 未实现 | P2 |
+| 云服务商列表 | 获取云LLM服务商列表 | `backend/src/api/routes/settings.py` | ✓ 已实现 | P2 |
+| 云配置获取 | 获取云LLM配置 | `backend/src/api/routes/settings.py` | ✓ 已实现 | P2 |
+| 云配置保存 | 保存云LLM配置 | `backend/src/api/routes/settings.py` | ✓ 已实现 | P2 |
+| 云API验证 | 测试云LLM API连接 | `backend/src/api/routes/settings.py` | ✓ 已实现 | P2 |
 | 切换LLM模式 | 在Ollama和云LLM间切换 | `backend/src/api/routes/settings.py` | ✗ 未实现 | P2 |
 | 运行任务数 | 获取运行中任务数 | `backend/src/api/routes/settings.py` | ✗ 未实现 | P2 |
-| 恢复默认 | 恢复默认LLM配置 | `backend/src/api/routes/settings.py` | ✗ 未实现 | P2 |
-| 预算获取 | 获取月度预算信息 | `backend/src/api/routes/settings.py` | ✗ 未实现 | P2 |
+| 恢复默认 | 恢复默认LLM配置 | `backend/src/api/routes/settings.py` | ✓ 已实现 | P2 |
+| 预算获取 | 获取月度预算信息 | `backend/src/api/routes/settings.py` | ✓ 已实现 | P2 |
 | 预算保存 | 设置月度预算 | `backend/src/api/routes/settings.py` | ✗ 未实现 | P2 |
 | 模型基准测试 | 运行模型基准测试 | `backend/src/api/routes/settings.py` | ✗ 未实现 | P2 |
 | 基准测试历史 | 获取基准测试历史 | `backend/src/api/routes/settings.py` | ✗ 未实现 | P2 |
@@ -179,9 +179,9 @@
 
 | 功能名称 | 功能描述 | Python实现文件 | Java实现状态 | 优先级 |
 |---------|---------|--------------|-------------|--------|
-| 导出备份 | 导出所有小说为ZIP | `backend/src/api/routes/backup.py` | ✗ 未实现 | P2 |
-| 导入预览 | 预览备份ZIP内容 | `backend/src/api/routes/backup.py` | ✗ 未实现 | P2 |
-| 确认导入 | 从备份ZIP导入 | `backend/src/api/routes/backup.py` | ✗ 未实现 | P2 |
+| 导出备份 | 导出所有小说为ZIP | `backend/src/api/routes/backup.py` | ✓ 已实现 | P2 |
+| 导入预览 | 预览备份ZIP内容 | `backend/src/api/routes/backup.py` | ✓ 已实现 | P2 |
+| 确认导入 | 从备份ZIP导入 | `backend/src/api/routes/backup.py` | ✓ 已实现 | P2 |
 
 ---
 
@@ -189,7 +189,7 @@
 
 | 功能名称 | 功能描述 | Python实现文件 | Java实现状态 | 优先级 |
 |---------|---------|--------------|-------------|--------|
-| 导出系列圣经 | 导出设定集 | `backend/src/api/routes/series_bible.py` | ✗ 未实现 | P2 |
+| 导出系列圣经 | 导出设定集 | `backend/src/api/routes/series_bible.py` | ✓ 已实现 | P2 |
 | 导出小说 | 导出小说数据 | `backend/src/api/routes/export_import.py` | ✗ 未实现 | P2 |
 | 导出AIR格式 | 导出AIR格式 | `backend/src/api/routes/export_import.py` | ✗ 未实现 | P2 |
 | 导入预览 | 预览数据导入 | `backend/src/api/routes/export_import.py` | ✗ 未实现 | P2 |
@@ -255,7 +255,7 @@
 |---------|---------|--------------|-------------|--------|
 | LLM客户端 | OpenAI兼容客户端 | `backend/src/infra/llm_client.py` | ✓ 部分实现 | P0 |
 | Ollama客户端 | Ollama集成 | `backend/src/infra/llm_client.py` | ✓ 部分实现 | P0 |
-| Anthropic客户端 | Claude集成 | `backend/src/infra/anthropic_client.py` | ✗ 未实现 | P2 |
+| Anthropic客户端 | Claude集成 | `backend/src/infra/anthropic_client.py` | ✓ 已实现 | P2 |
 | 配置管理 | 应用配置 | `backend/src/infra/config.py` | ✓ 部分实现 | P0 |
 | 上下文预算 | 上下文管理 | `backend/src/infra/context_budget.py` | ✗ 未实现 | P2 |
 
@@ -271,20 +271,20 @@
 | 分析功能 | 11 | 0 | 11 | 0% |
 | 实体管理 | 2 | 0 | 2 | 0% |
 | 世界结构 | 10 | 0 | 10 | 0% |
-| 地图可视化 | 3 | 0 | 3 | 0% |
+| 地图可视化 | 3 | 3 | 0 | 100% |
 | 关系图表 | 1 | 0 | 1 | 0% |
 | 聊天功能 | 6 | 0 | 6 | 0% |
 | 百科功能 | 6 | 0 | 6 | 0% |
-| 预扫描功能 | 3 | 0 | 3 | 0% |
-| 设置功能 | 19 | 1 | 18 | 5% |
-| 备份导出 | 3 | 0 | 3 | 0% |
-| 其他导出 | 4 | 0 | 4 | 0% |
+| 预扫描功能 | 3 | 3 | 0 | 100% |
+| 设置功能 | 19 | 10 | 9 | 53% |
+| 备份导出 | 3 | 3 | 0 | 100% |
+| 其他导出 | 4 | 1 | 3 | 25% |
 | WebSocket | 2 | 0 | 2 | 0% |
 | 数据库存储 | 9 | 2 | 7 | 22% |
 | 服务层 | 8 | 0 | 8 | 0% |
 | 提取层 | 5 | 0 | 5 | 0% |
 | 基础设施 | 5 | 3 | 2 | 60% |
-| **总计** | **121** | **13** | **108** | **11%** |
+| **总计** | **121** | **33** | **88** | **27%** |
 
 ---
 
