@@ -42,7 +42,7 @@
 | P1-08 | 关系图 API | ✅ 已完成 | P1-04 | 获取人物关系图数据 |
 | P1-09 | 对话管理 API | ✅ 已完成 | P0-01 | ConversationController 已实现 |
 | P1-10 | 聊天 WebSocket | ✅ 已完成 | P1-09 | ChatWebSocketHandler 已实现 |
-| P1-11 | 分析进度 WebSocket | 📋 待执行 | P1-05 | 分析进度实时推送 |
+| P1-11 | 分析进度 WebSocket | ✅ 已完成 | P1-05 | AnalysisWebSocketHandler 已实现 |
 
 ---
 
@@ -64,28 +64,27 @@
 
 ## 当前进度
 
-### 已完成任务数: 15/32 (47%)
+### 已完成任务数: 16/32 (50%)
 
 ### P0: 5/5 (100%) ✓
-### P1: 10/11 (91%)
+### P1: 11/11 (100%) ✓
 ### P2: 0/9 (0%)
 
 ---
 
 ## 下一个待执行任务
 
-**P1-11 - 分析进度 WebSocket**
+**P2-01 - 章节搜索 API**
 
-**目标**: 实现分析进度实时推送功能
+**目标**: 实现全文本搜索章节功能
 
 **需要创建/修改的文件**:
-1. 检查现有 `AnalysisWebSocketHandler.java` 实现
-2. 完善分析进度推送逻辑
+1. 在NovelController或ChapterController中添加搜索端点
+2. 实现全文搜索逻辑
 
 **API端点**:
-- `WS /ws/analysis` - WebSocket连接端点
+- `GET /api/novels/{novelId}/search?q=keyword` - 搜索章节
 
 **功能**:
-- 接收分析任务状态
-- 实时推送分析进度
-- 推送分析完成/错误通知
+- 根据关键词搜索章节内容
+- 返回匹配的章节片段
