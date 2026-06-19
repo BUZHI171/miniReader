@@ -6,7 +6,7 @@ import com.aireader.v2.repository.ChapterFactRepository;
 import com.aireader.v2.repository.ChapterRepository;
 import com.aireader.v2.repository.NovelRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -28,18 +28,40 @@ public class SceneController {
     private final ObjectMapper objectMapper;
 
     @Data
-    public static class Scene {
-        private String location;
-        private String time;
-        private String characters;
-        private String action;
-        private Integer start;
-        private Integer end;
+    public static class SceneCharacterRole {
+        private String name;
+        private String role;
     }
 
-    // GET /api/novels/{novelId}/scenes/{chapterNum}
+    @Data
+    public static class Scene {
+        private Integer index;
+        private Integer chapter;
+        private String title;
+        private String location = "";
+        private List<String> characters = new ArrayList<>();
+        private String description = "";
+        private Integer dialogue_count = 0;
+        private List<Integer> paragraph_range;
+        private String heading;
+        private String time_of_day;
+        private String emotional_tone;
+        private List<String> key_dialogue = new ArrayList<>();
+        private List<SceneCharacterRole> character_roles = new ArrayList<>();
+        private String event_type;
+        private String summary;
+    }
+
+    @Data
+    public static class ChapterScenesResponse {
+        private Integer chapter;
+        private List<Scene> scenes;
+        private Integer scene_count;
+        private String source;
+    }
+
     @GetMapping("/{chapterNum}")
-    public ResponseEntity<Map<String, Object>> getChapterScenes(
+    public ResponseEntity<ChapterScenesResponse> getChapterScenes(
             @PathVariable String novelId,
             @PathVariable Integer chapterNum) {
 
@@ -47,55 +69,49 @@ public class SceneController {
             return ResponseEntity.notFound().build();
         }
 
-        // 获取章节内容
         Optional<Chapter> chapterOpt = chapterRepository.findByNovelIdAndChapterNum(novelId, chapterNum);
         if (chapterOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
 
         Chapter chapter = chapterOpt.get();
+        List<Scene> scenes = new ArrayList<>();
 
-        // 尝试从chapter_facts获取LLM提取的场景
         Optional<ChapterFact> factOpt = chapterFactRepository.findByNovelIdAndChapterId(novelId, chapter.getId());
         
         if (factOpt.isPresent() && factOpt.get().getScenesJson() != null) {
             try {
-                List<Scene> scenes = objectMapper.readValue(
-                        factOpt.get().getScenesJson(),
-                        new TypeReference<List<Scene>>() {}
-                );
-                
-                Map<String, Object> response = new HashMap<>();
-                response.put("chapter", chapterNum);
-                response.put("scenes", scenes);
-                response.put("scene_count", scenes.size());
-                response.put("source", "llm");
-                return ResponseEntity.ok(response);
-            } catch (JsonProcessingException e) {
+                scenes = parseScenesFromJson(factOpt.get().getScenesJson(), chapterNum);
+            } catch (Exception e) {
                 log.warn("Failed to parse scenes_json: {}", e.getMessage());
+                scenes = generateFallbackScenes(chapter, chapterNum);
             }
+        } else {
+            scenes = generateFallbackScenes(chapter, chapterNum);
         }
 
-        // 回退到基于规则的场景提取
-        List<Scene> scenes = extractScenesFromContent(chapter.getContent());
+        ChapterScenesResponse response = new ChapterScenesResponse();
+        response.setChapter(chapterNum);
+        response.setScenes(scenes);
+        response.setScene_count(scenes.size());
+        response.setSource(factOpt.isPresent() && factOpt.get().getScenesJson() != null ? "llm" : "rule");
         
-        Map<String, Object> response = new HashMap<>();
-        response.put("chapter", chapterNum);
-        response.put("scenes", scenes);
-        response.put("scene_count", scenes.size());
-        response.put("source", "rule");
         return ResponseEntity.ok(response);
     }
 
-    // GET /api/novels/{novelId}/scenes
     @GetMapping
     public ResponseEntity<Map<String, Object>> getScenesRange(
             @PathVariable String novelId,
-            @RequestParam Integer chapterStart,
-            @RequestParam Integer chapterEnd) {
+            @RequestParam(required = false) Integer chapterStart,
+            @RequestParam(required = false) Integer chapterEnd) {
 
         if (!novelRepository.existsById(novelId)) {
             return ResponseEntity.notFound().build();
+        }
+
+        if (chapterStart == null || chapterEnd == null) {
+            chapterStart = 1;
+            chapterEnd = 5;
         }
 
         Map<Integer, List<Scene>> chaptersScenes = new TreeMap<>();
@@ -108,19 +124,15 @@ public class SceneController {
             Chapter chapter = chapterOpt.get();
             List<Scene> scenes;
 
-            // 尝试从chapter_facts获取
             Optional<ChapterFact> factOpt = chapterFactRepository.findByNovelIdAndChapterId(novelId, chapter.getId());
             if (factOpt.isPresent() && factOpt.get().getScenesJson() != null) {
                 try {
-                    scenes = objectMapper.readValue(
-                            factOpt.get().getScenesJson(),
-                            new TypeReference<List<Scene>>() {}
-                    );
-                } catch (JsonProcessingException e) {
-                    scenes = extractScenesFromContent(chapter.getContent());
+                    scenes = parseScenesFromJson(factOpt.get().getScenesJson(), chNum);
+                } catch (Exception e) {
+                    scenes = generateFallbackScenes(chapter, chNum);
                 }
             } else {
-                scenes = extractScenesFromContent(chapter.getContent());
+                scenes = generateFallbackScenes(chapter, chNum);
             }
 
             chaptersScenes.put(chNum, scenes);
@@ -135,27 +147,80 @@ public class SceneController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * 基于规则的场景提取（简化版）
-     */
-    private List<Scene> extractScenesFromContent(String content) {
-        if (content == null || content.isEmpty()) {
-            return Collections.emptyList();
+    private List<Scene> parseScenesFromJson(String scenesJson, int chapterNum) throws JsonProcessingException {
+        List<Scene> scenes = new ArrayList<>();
+        JsonNode root = objectMapper.readTree(scenesJson);
+        
+        if (root.isArray()) {
+            int index = 0;
+            for (JsonNode node : root) {
+                Scene scene = new Scene();
+                scene.setIndex(index++);
+                scene.setChapter(chapterNum);
+                scene.setTitle(node.has("title") ? node.get("title").asText() : "场景 " + index);
+                scene.setLocation(node.has("location") ? node.get("location").asText() : "");
+                scene.setDescription(node.has("description") ? node.get("description").asText() : "");
+                scene.setTime_of_day(node.has("time_of_day") ? node.get("time_of_day").asText() : "");
+                scene.setEmotional_tone(node.has("emotional_tone") ? node.get("emotional_tone").asText() : "");
+                scene.setEvent_type(node.has("event_type") ? node.get("event_type").asText() : "");
+                scene.setSummary(node.has("summary") ? node.get("summary").asText() : "");
+                scene.setDialogue_count(node.has("dialogue_count") ? node.get("dialogue_count").asInt() : 0);
+                
+                scene.setCharacters(new ArrayList<>());
+                if (node.has("characters") && node.get("characters").isArray()) {
+                    for (JsonNode charNode : node.get("characters")) {
+                        scene.getCharacters().add(charNode.asText());
+                    }
+                }
+                
+                scene.setKey_dialogue(new ArrayList<>());
+                if (node.has("key_dialogue") && node.get("key_dialogue").isArray()) {
+                    for (JsonNode dNode : node.get("key_dialogue")) {
+                        scene.getKey_dialogue().add(dNode.asText());
+                    }
+                }
+                
+                scene.setCharacter_roles(new ArrayList<>());
+                if (node.has("character_roles") && node.get("character_roles").isArray()) {
+                    for (JsonNode crNode : node.get("character_roles")) {
+                        SceneCharacterRole cr = new SceneCharacterRole();
+                        cr.setName(crNode.has("name") ? crNode.get("name").asText() : "");
+                        cr.setRole(crNode.has("role") ? crNode.get("role").asText() : "");
+                        scene.getCharacter_roles().add(cr);
+                    }
+                }
+                
+                scenes.add(scene);
+            }
         }
+        
+        return scenes;
+    }
 
+    private List<Scene> generateFallbackScenes(Chapter chapter, int chapterNum) {
         List<Scene> scenes = new ArrayList<>();
         
-        // 简单规则：按段落分割，每段作为一个场景
-        String[] paragraphs = content.split("\n\n+");
+        if (chapter.getContent() == null || chapter.getContent().isEmpty()) {
+            return scenes;
+        }
+
+        String[] paragraphs = chapter.getContent().split("\n\n+");
         
-        for (int i = 0; i < Math.min(paragraphs.length, 10); i++) {
+        for (int i = 0; i < Math.min(paragraphs.length, 5); i++) {
             String para = paragraphs[i].trim();
             if (para.length() < 10) continue;
             
             Scene scene = new Scene();
-            scene.setAction(truncate(para, 200));
-            scene.setStart(i);
-            scene.setEnd(i + 1);
+            scene.setIndex(i);
+            scene.setChapter(chapterNum);
+            scene.setTitle("场景 " + (i + 1));
+            scene.setLocation("");
+            scene.setDescription(truncate(para, 200));
+            scene.setCharacters(new ArrayList<>());
+            scene.setKey_dialogue(new ArrayList<>());
+            scene.setCharacter_roles(new ArrayList<>());
+            scene.setDialogue_count(0);
+            
             scenes.add(scene);
         }
 
