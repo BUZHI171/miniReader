@@ -117,12 +117,12 @@
 
 | 功能名称 | 功能描述 | Python实现文件 | Java实现状态 | 优先级 |
 |---------|---------|--------------|-------------|--------|
-| 对话列表 | 获取所有对话 | `backend/src/api/routes/chat.py` | ✗ 未实现 | P1 |
-| 创建对话 | 创建新对话 | `backend/src/api/routes/chat.py` | ✗ 未实现 | P1 |
-| 删除对话 | 删除对话 | `backend/src/api/routes/chat.py` | ✗ 未实现 | P2 |
-| 消息列表 | 获取对话消息 | `backend/src/api/routes/chat.py` | ✗ 未实现 | P1 |
-| 导出对话 | 导出对话为Markdown | `backend/src/api/routes/chat.py` | ✗ 未实现 | P2 |
-| 导出全部对话 | 导出小说所有对话 | `backend/src/api/routes/chat.py` | ✗ 未实现 | P2 |
+| 对话列表 | 获取所有对话 | `backend/src/api/routes/chat.py` | ✓ 已实现 | P1 |
+| 创建对话 | 创建新对话 | `backend/src/api/routes/chat.py` | ✓ 已实现 | P1 |
+| 删除对话 | 删除对话 | `backend/src/api/routes/chat.py` | ✓ 已实现 | P2 |
+| 消息列表 | 获取对话消息 | `backend/src/api/routes/chat.py` | ✓ 已实现 | P1 |
+| 导出对话 | 导出对话为Markdown | `backend/src/api/routes/chat.py` | ✓ 已实现 | P2 |
+| 导出全部对话 | 导出小说所有对话 | `backend/src/api/routes/chat.py` | ✓ 已实现 | P2 |
 
 ---
 
