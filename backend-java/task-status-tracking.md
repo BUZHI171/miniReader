@@ -37,7 +37,7 @@
 | P1-03 | 实体列表 API | ✅ 已完成 | P1-02 | 获取所有实体，可按类型筛选 |
 | P1-04 | 实体详情 API | ✅ 已完成 | P1-03 | 获取单个实体的聚合信息 |
 | P1-05 | 分析任务管理 API | ✅ 已完成 | P0-01 | 分析任务的创建、查询、控制 |
-| P1-06 | 百科功能 API | 📋 待执行 | P1-04 | 百科分类统计、条目列表、概念详情 |
+| P1-06 | 百科功能 API | ✅ 已完成 | P1-04 | 百科分类统计、条目列表、概念详情 |
 | P1-07 | 世界结构 API | 📋 待执行 | P1-04 | 获取世界结构、层级重建 |
 | P1-08 | 关系图 API | 📋 待执行 | P1-04 | 获取人物关系图数据 |
 | P1-09 | 对话管理 API | 📋 待执行 | P0-01 | 对话列表、创建、消息管理 |
@@ -64,26 +64,26 @@
 
 ## 当前进度
 
-### 已完成任务数: 10/32 (31%)
+### 已完成任务数: 11/32 (34%)
 
 ### P0: 5/5 (100%) ✓
-### P1: 5/11 (45%)
+### P1: 6/11 (55%)
 ### P2: 0/9 (0%)
 
 ---
 
 ## 下一个待执行任务
 
-**P1-06 - 百科功能 API**
+**P1-07 - 世界结构 API**
 
-**目标**: 实现百科分类统计、条目列表、概念详情的API
+**目标**: 实现获取世界结构、层级重建的API
 
 **需要创建/修改的文件**:
-1. `EncyclopediaController.java` - 百科控制器
+1. `WorldStructure.java` - 世界结构实体类
+2. `WorldStructureRepository.java` - 世界结构数据访问层
+3. `WorldStructureController.java` - 世界结构控制器
 
 **API端点**:
-- `GET /api/novels/{novelId}/encyclopedia/stats` - 获取百科分类统计
-- `GET /api/novels/{novelId}/encyclopedia/entries` - 获取百科条目列表
-- `GET /api/novels/{novelId}/encyclopedia/concepts/{conceptName}` - 获取概念详情
+- `GET /api/novels/{novelId}/world-structure` - 获取世界结构
 
-**数据库表**: `chapter_facts`（从章节事实中聚合实体信息）
+**数据库表**: `world_structures`
