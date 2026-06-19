@@ -49,6 +49,14 @@ public class NovelService {
     public Optional<Novel> getNovel(String novelId) {
         return novelRepository.findById(novelId);
     }
+    
+    /**
+     * 根据ID获取小说DTO
+     */
+    public Optional<NovelDTO> getNovelDTO(String novelId) {
+        return novelRepository.findById(novelId)
+                .map(this::convertToDTO);
+    }
 
     /**
      * 上传并预览小说
@@ -190,6 +198,9 @@ public class NovelService {
         // 统计失败章节数
         List<Chapter> failedChapters = chapterRepository.findFailedByNovelId(novel.getId());
         dto.setFailedCount(failedChapters != null ? failedChapters.size() : 0);
+        
+        // 设置阅读进度（默认0，后续可从用户状态获取）
+        dto.setReadingProgress(0.0);
         
         return dto;
     }

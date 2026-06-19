@@ -58,4 +58,8 @@ public class NovelDTO {
     @JsonProperty("failed_count")
     @Builder.Default
     private Integer failedCount = 0;
+    
+    @JsonProperty("reading_progress")
+    @Builder.Default
+    private Double readingProgress = 0.0;
 }
