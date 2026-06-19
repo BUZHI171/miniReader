@@ -34,8 +34,8 @@
 |---------|---------|------|------|------|
 | P1-01 | 用户状态管理（阅读进度） | ✅ 已完成 | P0-01 | 获取/保存用户阅读状态 |
 | P1-02 | 章节实体 API | ✅ 已完成 | P0-02 | 获取章节中的实体名称 |
-| P1-03 | 实体列表 API | 📋 待执行 | P1-02 | 获取所有实体，可按类型筛选 |
-| P1-04 | 实体详情 API | 📋 待执行 | P1-03 | 获取单个实体的聚合信息 |
+| P1-03 | 实体列表 API | ✅ 已完成 | P1-02 | 获取所有实体，可按类型筛选 |
+| P1-04 | 实体详情 API | ✅ 已完成 | P1-03 | 获取单个实体的聚合信息 |
 | P1-05 | 分析任务管理 API | 📋 待执行 | P0-01 | 分析任务的创建、查询、控制 |
 | P1-06 | 百科功能 API | 📋 待执行 | P1-04 | 百科分类统计、条目列表、概念详情 |
 | P1-07 | 世界结构 API | 📋 待执行 | P1-04 | 获取世界结构、层级重建 |
@@ -64,25 +64,30 @@
 
 ## 当前进度
 
-### 已完成任务数: 7/32 (22%)
+### 已完成任务数: 9/32 (28%)
 
 ### P0: 5/5 (100%) ✓
-### P1: 2/11 (18%)
+### P1: 4/11 (36%)
 ### P2: 0/9 (0%)
 
 ---
 
 ## 下一个待执行任务
 
-**P1-03 - 实体列表 API**
+**P1-05 - 分析任务管理 API**
 
-**目标**: 实现获取所有实体，可按类型筛选的API
+**目标**: 实现分析任务的创建、查询、控制API
 
 **需要创建/修改的文件**:
-1. `EntityController.java` - 新建实体控制器
-2. `EntityService.java` - 实体服务类
+1. `AnalysisTask.java` - 分析任务实体类
+2. `AnalysisTaskRepository.java` - 分析任务数据访问层
+3. `AnalysisController.java` - 分析任务控制器
 
 **API端点**:
-- `GET /api/novels/{novelId}/entities` - 获取所有实体，支持类型筛选
+- `GET /api/novels/{novelId}/analysis` - 获取分析任务状态
+- `POST /api/novels/{novelId}/analysis/start` - 开始分析任务
+- `POST /api/novels/{novelId}/analysis/pause` - 暂停分析任务
+- `POST /api/novels/{novelId}/analysis/resume` - 恢复分析任务
+- `POST /api/novels/{novelId}/analysis/cancel` - 取消分析任务
 
-**数据库表**: `chapter_facts`（从章节事实中聚合实体）
+**数据库表**: `analysis_tasks`

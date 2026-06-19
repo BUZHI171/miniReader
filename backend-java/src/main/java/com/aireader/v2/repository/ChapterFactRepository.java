@@ -1,4 +1,4 @@
-﻿package com.aireader.v2.repository;
+package com.aireader.v2.repository;
 
 import com.aireader.v2.model.entity.ChapterFact;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,4 +1,4 @@
-﻿package com.aireader.v2.model.entity;
+package com.aireader.v2.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
