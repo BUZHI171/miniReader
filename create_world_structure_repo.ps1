@@ -1,3 +1,4 @@
+$content = @'
 package com.aireader.v2.repository;
 
 import com.aireader.v2.model.entity.WorldStructure;
@@ -7,9 +8,13 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 /**
- * 涓栫晫缁撴瀯鏁版嵁璁块棶灞? */
+ * 世界结构数据访问层
+ */
 @Repository
 public interface WorldStructureRepository extends JpaRepository<WorldStructure, String> {
     
     Optional<WorldStructure> findByNovelId(String novelId);
 }
+'@
+
+Set-Content -Path "e:\kaifa\other\miniReader\backend-java\src\main\java\com\aireader\v2\repository\WorldStructureRepository.java" -Value $content -Encoding UTF8

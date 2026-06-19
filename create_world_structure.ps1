@@ -1,3 +1,4 @@
+$content = @'
 package com.aireader.v2.model.entity;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -8,7 +9,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * 涓栫晫缁撴瀯瀹炰綋绫? * 瀵瑰簲Python鐨刉orldStructure鏁版嵁妯″瀷
+ * 世界结构实体类
+ * 对应Python的WorldStructure数据模型
  */
 @Entity
 @Table(name = "world_structures")
@@ -39,3 +41,6 @@ public class WorldStructure {
     @Column(name = "updated_at")
     private String updatedAt;
 }
+'@
+
+Set-Content -Path "e:\kaifa\other\miniReader\backend-java\src\main\java\com\aireader\v2\model\entity\WorldStructure.java" -Value $content -Encoding UTF8
