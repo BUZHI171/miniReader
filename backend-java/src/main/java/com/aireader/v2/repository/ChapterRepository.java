@@ -29,6 +29,13 @@ public interface ChapterRepository extends JpaRepository<Chapter, Long> {
     @Query("SELECT c FROM Chapter c WHERE c.novelId = :novelId AND c.analysisStatus = 'failed'")
     List<Chapter> findFailedByNovelId(@Param("novelId") String novelId);
 
+    /**
+     * 查找失败的章节（别名方法）
+     */
+    default List<Chapter> findFailedChapters(String novelId) {
+        return findFailedByNovelId(novelId);
+    }
+
     // 原生SQL查询
     @Query(value = "SELECT id FROM chapters WHERE novel_id = :novelId AND chapter_num = :chapterNum", nativeQuery = true)
     List<Object[]> findChapterId(@Param("novelId") String novelId, @Param("chapterNum") Integer chapterNum);
@@ -40,4 +47,18 @@ public interface ChapterRepository extends JpaRepository<Chapter, Long> {
     @Modifying
     @Query(value = "UPDATE chapters SET is_excluded = :isExcluded, updated_at = :updatedAt WHERE novel_id = :novelId AND chapter_num = :chapterNum", nativeQuery = true)
     int updateChapterExcludedOnly(@Param("novelId") String novelId, @Param("chapterNum") Integer chapterNum, @Param("isExcluded") String isExcluded, @Param("updatedAt") String updatedAt);
+
+    /**
+     * 更新章节分析状态（仅状态）
+     */
+    @Modifying
+    @Query(value = "UPDATE chapters SET analysis_status = :status, updated_at = datetime('now') WHERE novel_id = :novelId AND chapter_num = :chapterNum", nativeQuery = true)
+    void updateAnalysisStatus(@Param("novelId") String novelId, @Param("chapterNum") Integer chapterNum, @Param("status") String status);
+
+    /**
+     * 更新章节分析状态（带错误信息和错误类型）
+     */
+    @Modifying
+    @Query(value = "UPDATE chapters SET analysis_status = :status, error_message = :errorMessage, error_type = :errorType, updated_at = datetime('now') WHERE novel_id = :novelId AND chapter_num = :chapterNum", nativeQuery = true)
+    void updateAnalysisStatus(@Param("novelId") String novelId, @Param("chapterNum") Integer chapterNum, @Param("status") String status, @Param("errorMessage") String errorMessage, @Param("errorType") String errorType);
 }

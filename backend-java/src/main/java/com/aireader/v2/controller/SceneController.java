@@ -5,6 +5,7 @@ import com.aireader.v2.model.entity.ChapterFact;
 import com.aireader.v2.repository.ChapterFactRepository;
 import com.aireader.v2.repository.ChapterRepository;
 import com.aireader.v2.repository.NovelRepository;
+import com.aireader.v2.service.SceneExtractor;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,6 +27,7 @@ public class SceneController {
     private final ChapterRepository chapterRepository;
     private final NovelRepository novelRepository;
     private final ObjectMapper objectMapper;
+    private final SceneExtractor sceneExtractor;
 
     @Data
     public static class SceneCharacterRole {
@@ -60,6 +62,10 @@ public class SceneController {
         private String source;
     }
 
+    /**
+     * Get scenes for a single chapter.
+     * Priority: LLM-extracted scenes (DB) → rule-based fallback.
+     */
     @GetMapping("/{chapterNum}")
     public ResponseEntity<ChapterScenesResponse> getChapterScenes(
             @PathVariable String novelId,
@@ -76,29 +82,53 @@ public class SceneController {
 
         Chapter chapter = chapterOpt.get();
         List<Scene> scenes = new ArrayList<>();
+        String source = "rule";
 
+        // Try LLM scenes first (stored in chapter_facts.scenes_json)
         Optional<ChapterFact> factOpt = chapterFactRepository.findByNovelIdAndChapterId(novelId, chapter.getId());
-        
-        if (factOpt.isPresent() && factOpt.get().getScenesJson() != null) {
-            try {
-                scenes = parseScenesFromJson(factOpt.get().getScenesJson(), chapterNum);
-            } catch (Exception e) {
-                log.warn("Failed to parse scenes_json: {}", e.getMessage());
-                scenes = generateFallbackScenes(chapter, chapterNum);
+
+//        if (factOpt.isPresent() && factOpt.get().getScenesJson() != null && !factOpt.get().getScenesJson().isEmpty()) {
+//            try {
+//                scenes = parseScenesFromJson(factOpt.get().getScenesJson(), chapterNum);
+//                source = "llm";
+//            } catch (Exception e) {
+//                log.warn("Failed to parse scenes_json: {}", e.getMessage());
+//            }
+//        }
+
+        // Fallback to rule-based extraction if no LLM scenes
+        if (scenes.isEmpty() && chapter.getContent() != null) {
+            Map<String, Object> factData = null;
+            if (factOpt.isPresent() && factOpt.get().getFactJson() != null) {
+                try {
+                    factData = objectMapper.readValue(factOpt.get().getFactJson(), Map.class);
+                } catch (JsonProcessingException e) {
+                    log.warn("Failed to parse fact_json: {}", e.getMessage());
+                }
             }
-        } else {
-            scenes = generateFallbackScenes(chapter, chapterNum);
+
+            List<SceneExtractor.Scene> extractedScenes = sceneExtractor.extractScenes(
+                chapter.getContent(),
+                chapter.getTitle() != null ? chapter.getTitle() : "第" + chapterNum + "章",
+                chapterNum,
+                factData
+            );
+
+            scenes = convertScenes(extractedScenes);
         }
 
         ChapterScenesResponse response = new ChapterScenesResponse();
         response.setChapter(chapterNum);
         response.setScenes(scenes);
         response.setScene_count(scenes.size());
-        response.setSource(factOpt.isPresent() && factOpt.get().getScenesJson() != null ? "llm" : "rule");
-        
+        response.setSource(source);
+
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Get scenes for a range of chapters.
+     */
     @GetMapping
     public ResponseEntity<Map<String, Object>> getScenesRange(
             @PathVariable String novelId,
@@ -114,7 +144,7 @@ public class SceneController {
             chapterEnd = 5;
         }
 
-        Map<Integer, List<Scene>> chaptersScenes = new TreeMap<>();
+        Map<String, List<Scene>> chaptersScenes = new TreeMap<>();
         int totalScenes = 0;
 
         for (int chNum = chapterStart; chNum <= chapterEnd; chNum++) {
@@ -123,19 +153,21 @@ public class SceneController {
 
             Chapter chapter = chapterOpt.get();
             List<Scene> scenes;
+            String source = "rule";
 
             Optional<ChapterFact> factOpt = chapterFactRepository.findByNovelIdAndChapterId(novelId, chapter.getId());
-            if (factOpt.isPresent() && factOpt.get().getScenesJson() != null) {
+            if (factOpt.isPresent() && factOpt.get().getScenesJson() != null && !factOpt.get().getScenesJson().isEmpty()) {
                 try {
                     scenes = parseScenesFromJson(factOpt.get().getScenesJson(), chNum);
+                    source = "llm";
                 } catch (Exception e) {
-                    scenes = generateFallbackScenes(chapter, chNum);
+                    scenes = extractRuleBasedScenes(chapter, chNum, factOpt.orElse(null));
                 }
             } else {
-                scenes = generateFallbackScenes(chapter, chNum);
+                scenes = extractRuleBasedScenes(chapter, chNum, factOpt.orElse(null));
             }
 
-            chaptersScenes.put(chNum, scenes);
+            chaptersScenes.put(String.valueOf(chNum), scenes);
             totalScenes += scenes.size();
         }
 
@@ -147,10 +179,61 @@ public class SceneController {
         return ResponseEntity.ok(response);
     }
 
+    /**
+     * Extract scenes using rule-based algorithm.
+     */
+    private List<Scene> extractRuleBasedScenes(Chapter chapter, int chapterNum, ChapterFact fact) {
+        Map<String, Object> factData = null;
+        if (fact != null && fact.getFactJson() != null) {
+            try {
+                factData = objectMapper.readValue(fact.getFactJson(), Map.class);
+            } catch (JsonProcessingException e) {
+                log.warn("Failed to parse fact_json: {}", e.getMessage());
+            }
+        }
+
+        List<SceneExtractor.Scene> extractedScenes = sceneExtractor.extractScenes(
+            chapter.getContent(),
+            chapter.getTitle() != null ? chapter.getTitle() : "第" + chapterNum + "章",
+            chapterNum,
+            factData
+        );
+
+        return convertScenes(extractedScenes);
+    }
+
+    /**
+     * Convert SceneExtractor.Scene to controller Scene DTO.
+     */
+    private List<Scene> convertScenes(List<SceneExtractor.Scene> extractedScenes) {
+        List<Scene> scenes = new ArrayList<>();
+        for (SceneExtractor.Scene es : extractedScenes) {
+            Scene scene = new Scene();
+            scene.setIndex(es.getIndex());
+            scene.setChapter(es.getChapter());
+            scene.setTitle(es.getTitle());
+            scene.setLocation(es.getLocation());
+            scene.setCharacters(es.getCharacters());
+            scene.setDescription(es.getDescription());
+            scene.setDialogue_count(es.getDialogueCount());
+            if (es.getParagraphRange() != null) {
+                scene.setParagraph_range(Arrays.asList(es.getParagraphRange()[0], es.getParagraphRange()[1]));
+            }
+            scene.setHeading(es.getHeading());
+            scene.setTime_of_day(es.getTimeOfDay());
+            scene.setEmotional_tone(es.getEmotionalTone());
+            scene.setKey_dialogue(es.getKeyDialogue());
+            scene.setEvent_type(es.getEventType());
+            scene.setSummary(es.getSummary());
+            scenes.add(scene);
+        }
+        return scenes;
+    }
+
     private List<Scene> parseScenesFromJson(String scenesJson, int chapterNum) throws JsonProcessingException {
         List<Scene> scenes = new ArrayList<>();
         JsonNode root = objectMapper.readTree(scenesJson);
-        
+
         if (root.isArray()) {
             int index = 0;
             for (JsonNode node : root) {
@@ -165,21 +248,21 @@ public class SceneController {
                 scene.setEvent_type(node.has("event_type") ? node.get("event_type").asText() : "");
                 scene.setSummary(node.has("summary") ? node.get("summary").asText() : "");
                 scene.setDialogue_count(node.has("dialogue_count") ? node.get("dialogue_count").asInt() : 0);
-                
+
                 scene.setCharacters(new ArrayList<>());
                 if (node.has("characters") && node.get("characters").isArray()) {
                     for (JsonNode charNode : node.get("characters")) {
                         scene.getCharacters().add(charNode.asText());
                     }
                 }
-                
+
                 scene.setKey_dialogue(new ArrayList<>());
                 if (node.has("key_dialogue") && node.get("key_dialogue").isArray()) {
                     for (JsonNode dNode : node.get("key_dialogue")) {
                         scene.getKey_dialogue().add(dNode.asText());
                     }
                 }
-                
+
                 scene.setCharacter_roles(new ArrayList<>());
                 if (node.has("character_roles") && node.get("character_roles").isArray()) {
                     for (JsonNode crNode : node.get("character_roles")) {
@@ -189,46 +272,11 @@ public class SceneController {
                         scene.getCharacter_roles().add(cr);
                     }
                 }
-                
+
                 scenes.add(scene);
             }
         }
-        
-        return scenes;
-    }
-
-    private List<Scene> generateFallbackScenes(Chapter chapter, int chapterNum) {
-        List<Scene> scenes = new ArrayList<>();
-        
-        if (chapter.getContent() == null || chapter.getContent().isEmpty()) {
-            return scenes;
-        }
-
-        String[] paragraphs = chapter.getContent().split("\n\n+");
-        
-        for (int i = 0; i < Math.min(paragraphs.length, 5); i++) {
-            String para = paragraphs[i].trim();
-            if (para.length() < 10) continue;
-            
-            Scene scene = new Scene();
-            scene.setIndex(i);
-            scene.setChapter(chapterNum);
-            scene.setTitle("场景 " + (i + 1));
-            scene.setLocation("");
-            scene.setDescription(truncate(para, 200));
-            scene.setCharacters(new ArrayList<>());
-            scene.setKey_dialogue(new ArrayList<>());
-            scene.setCharacter_roles(new ArrayList<>());
-            scene.setDialogue_count(0);
-            
-            scenes.add(scene);
-        }
 
         return scenes;
-    }
-
-    private String truncate(String text, int maxLen) {
-        if (text == null) return "";
-        return text.length() > maxLen ? text.substring(0, maxLen) + "..." : text;
     }
 }

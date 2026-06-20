@@ -3,39 +3,37 @@ package com.aireader.v2.controller;
 import com.aireader.v2.model.entity.AnalysisTask;
 import com.aireader.v2.repository.AnalysisTaskRepository;
 import com.aireader.v2.repository.ChapterRepository;
+import com.aireader.v2.service.AnalysisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 /**
- * 鍒嗘瀽浠诲姟鎺у埗鍣?
- * 瀵瑰簲Python鐨凙nalysis API璺敱
+ * 分析任务控制器
+ * 对应Python的Analysis API接口
  */
 @RestController
 @RequiredArgsConstructor
 @Slf4j
 public class AnalysisController {
 
+    private final AnalysisService analysisService;
     private final AnalysisTaskRepository analysisTaskRepository;
     private final ChapterRepository chapterRepository;
 
     /**
-     * 鑾峰彇鎵�鏈夊凡鍚�姹俛pi/analysis/active
+     * 获取所有已启动分析任务列表
      */
     @GetMapping("/api/analysis/active")
     public ResponseEntity<Map<String, Object>> getAllActiveTasks() {
         List<AnalysisTask> runningTasks = analysisTaskRepository.findByStatus("running");
         List<AnalysisTask> pausedTasks = analysisTaskRepository.findByStatus("paused");
 
-        // 褰卞叆running浠诲姟浠�
         Map<String, String> result = new HashMap<>();
         for (AnalysisTask task : runningTasks) {
             result.put(task.getNovelId(), "running");
@@ -59,7 +57,7 @@ public class AnalysisController {
     }
 
     /**
-     * 鑾峰彇鍒嗘瀽浠诲姟鐘舵€?
+     * 获取分析任务状态
      */
     @GetMapping("/api/novels/{novelId}/analysis")
     public ResponseEntity<Map<String, Object>> getAnalysisStatus(@PathVariable String novelId) {
@@ -88,7 +86,7 @@ public class AnalysisController {
     }
 
     /**
-     * 鑾峰彇娲昏穬鍒嗘瀽浠诲姟鍒楄〃
+     * 获取活跃分析任务列表
      */
     @GetMapping("/api/novels/{novelId}/analysis/active")
     public ResponseEntity<Map<String, Object>> getActiveTasks(@PathVariable String novelId) {
@@ -97,7 +95,7 @@ public class AnalysisController {
     }
 
     /**
-     * 寮€濮嬪垎鏋愪换鍔?
+     * 开始分析任务
      */
     @PostMapping("/api/novels/{novelId}/analysis/start")
     public ResponseEntity<Map<String, Object>> startAnalysis(@PathVariable String novelId) {
@@ -110,43 +108,22 @@ public class AnalysisController {
             return ResponseEntity.badRequest().body(result);
         }
         
-        var existingTask = analysisTaskRepository.findByNovelId(novelId);
-        if (existingTask.isPresent()) {
-            AnalysisTask task = existingTask.get();
-            if ("running".equals(task.getStatus())) {
-                result.put("ok", false);
-                result.put("error", "Analysis already running");
-                return ResponseEntity.badRequest().body(result);
-            }
-            task.setStatus("running");
-            task.setCurrentChapter(1);
-            task.setUpdatedAt(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-            analysisTaskRepository.save(task);
+        try {
+            String taskId = analysisService.start(novelId, 1, (int) totalChapters, false);
+            var taskOpt = analysisTaskRepository.findById(taskId);
+            
             result.put("ok", true);
-            result.put("task", task);
+            result.put("task", taskOpt.orElse(null));
             return ResponseEntity.ok(result);
+        } catch (IllegalStateException e) {
+            result.put("ok", false);
+            result.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(result);
         }
-        
-        AnalysisTask newTask = AnalysisTask.builder()
-                .id(UUID.randomUUID().toString())
-                .novelId(novelId)
-                .status("running")
-                .chapterStart(1)
-                .chapterEnd((int) totalChapters)
-                .currentChapter(1)
-                .createdAt(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-                .updatedAt(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
-                .build();
-        
-        analysisTaskRepository.save(newTask);
-        
-        result.put("ok", true);
-        result.put("task", newTask);
-        return ResponseEntity.ok(result);
     }
 
     /**
-     * 鏆傚仠鍒嗘瀽浠诲姟
+     * 暂停分析任务
      */
     @PostMapping("/api/novels/{novelId}/analysis/pause")
     public ResponseEntity<Map<String, Object>> pauseAnalysis(@PathVariable String novelId) {
@@ -166,17 +143,20 @@ public class AnalysisController {
             return ResponseEntity.badRequest().body(result);
         }
         
-        task.setStatus("paused");
-        task.setUpdatedAt(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-        analysisTaskRepository.save(task);
-        
-        result.put("ok", true);
-        result.put("task", task);
-        return ResponseEntity.ok(result);
+        try {
+            analysisService.pause(task.getId());
+            result.put("ok", true);
+            result.put("task", analysisTaskRepository.findById(task.getId()).orElse(task));
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            result.put("ok", false);
+            result.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(result);
+        }
     }
 
     /**
-     * 鎭㈠畲鍒嗘瀽浠诲姟
+     * 恢复分析任务
      */
     @PostMapping("/api/novels/{novelId}/analysis/resume")
     public ResponseEntity<Map<String, Object>> resumeAnalysis(@PathVariable String novelId) {
@@ -196,17 +176,20 @@ public class AnalysisController {
             return ResponseEntity.badRequest().body(result);
         }
         
-        task.setStatus("running");
-        task.setUpdatedAt(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-        analysisTaskRepository.save(task);
-        
-        result.put("ok", true);
-        result.put("task", task);
-        return ResponseEntity.ok(result);
+        try {
+            analysisService.resume(task.getId());
+            result.put("ok", true);
+            result.put("task", analysisTaskRepository.findById(task.getId()).orElse(task));
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            result.put("ok", false);
+            result.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(result);
+        }
     }
 
     /**
-     * 鍙栨秷鍒嗘瀽浠诲姟
+     * 取消分析任务
      */
     @PostMapping("/api/novels/{novelId}/analysis/cancel")
     public ResponseEntity<Map<String, Object>> cancelAnalysis(@PathVariable String novelId) {
@@ -219,18 +202,20 @@ public class AnalysisController {
             return ResponseEntity.badRequest().body(result);
         }
         
-        AnalysisTask task = taskOpt.get();
-        task.setStatus("cancelled");
-        task.setUpdatedAt(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-        analysisTaskRepository.save(task);
-        
-        result.put("ok", true);
-        result.put("task", task);
-        return ResponseEntity.ok(result);
+        try {
+            analysisService.cancel(taskOpt.get().getId());
+            result.put("ok", true);
+            result.put("task", analysisTaskRepository.findById(taskOpt.get().getId()).orElse(taskOpt.get()));
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            result.put("ok", false);
+            result.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(result);
+        }
     }
 
     /**
-     * 鑾峰彇鏈�鏂颁换鍔′俊鎭?
+     * 获取最新任务信息
      */
     @GetMapping("/api/novels/{novelId}/analysis/latest")
     public ResponseEntity<Map<String, Object>> getLatestTask(@PathVariable String novelId) {
@@ -250,5 +235,41 @@ public class AnalysisController {
         result.put("failed_chapters", failedChapters);
         
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 获取实时计时信息
+     */
+    @GetMapping("/api/novels/{novelId}/analysis/timing")
+    public ResponseEntity<Map<String, Object>> getAnalysisTiming(@PathVariable String novelId) {
+        Map<String, Object> timing = analysisService.getLiveTiming(novelId);
+        return ResponseEntity.ok(Map.of("timing", timing));
+    }
+
+    /**
+     * 获取重试进度
+     */
+    @GetMapping("/api/novels/{novelId}/analysis/retry-progress")
+    public ResponseEntity<Map<String, Object>> getRetryProgress(@PathVariable String novelId) {
+        Map<String, Object> progress = analysisService.getRetryProgress(novelId);
+        return ResponseEntity.ok(Map.of("retry_progress", progress));
+    }
+
+    /**
+     * 重试失败章节
+     */
+    @PostMapping("/api/novels/{novelId}/analysis/retry-failed")
+    public ResponseEntity<Map<String, Object>> retryFailedChapters(@PathVariable String novelId) {
+        Map<String, Integer> result = analysisService.retryFailedChapters(novelId);
+        return ResponseEntity.ok(Map.of("ok", true, "retried", result.get("retried"), "total", result.get("total")));
+    }
+
+    /**
+     * 获取正在重试的小说列表
+     */
+    @GetMapping("/api/analysis/retrying")
+    public ResponseEntity<Map<String, Object>> getRetryingNovels() {
+        List<String> novelIds = analysisService.getRetryingNovelIds();
+        return ResponseEntity.ok(Map.of("novel_ids", novelIds));
     }
 }
