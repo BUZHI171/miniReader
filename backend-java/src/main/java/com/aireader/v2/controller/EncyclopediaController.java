@@ -212,6 +212,14 @@ public class EncyclopediaController {
 
         List<Map<String, Object>> entries = new ArrayList<>(entityMap.values());
 
+        // Deduplicate by name to ensure uniqueness
+        Map<String, Map<String, Object>> deduplicated = new LinkedHashMap<>();
+        for (Map<String, Object> entry : entries) {
+            String name = (String) entry.get("name");
+            deduplicated.put(name, entry);
+        }
+        entries = new ArrayList<>(deduplicated.values());
+
         // Sort entries
         if ("chapter".equals(sort)) {
             entries.sort(Comparator.comparingInt(e -> (Integer) e.getOrDefault("first_chapter", 0)));
@@ -431,8 +439,12 @@ public class EncyclopediaController {
         List<Map<String, Object>> excerpts = new ArrayList<>();
         Set<String> relatedConcepts = new HashSet<>();
 
+        List<Map<String, Object>> relatedEntities = new ArrayList<>();
+        Set<String> seenNames = new HashSet<>();
+
         List<Chapter> chapters = chapterRepository.findByNovelIdOrderByChapterNum(novelId);
 
+        // First pass: collect concept info, excerpts, and related concepts
         for (Chapter chapter : chapters) {
             var factOpt = chapterFactRepository.findByNovelIdAndChapterId(novelId, chapter.getId());
 
@@ -482,6 +494,37 @@ public class EncyclopediaController {
                     }
                 }
 
+                JsonNode eventsNode = factJson.get("events");
+                if (eventsNode != null && eventsNode.isArray()) {
+                    for (JsonNode evt : eventsNode) {
+                        String summary = evt.has("summary") ? evt.get("summary").asText() : "";
+                        if (summary.contains(name)) {
+                            // Extract participants
+                            JsonNode participantsNode = evt.get("participants");
+                            if (participantsNode != null && participantsNode.isArray()) {
+                                for (JsonNode p : participantsNode) {
+                                    String pName = p.asText();
+                                    if (!pName.isEmpty() && !seenNames.contains(pName)) {
+                                        seenNames.add(pName);
+                                        Map<String, Object> entity = new LinkedHashMap<>();
+                                        entity.put("name", pName);
+                                        entity.put("type", "person");
+                                        entity.put("chapter", chapterNum);
+                                        relatedEntities.add(entity);
+
+                                        if (relatedEntities.size() >= 10) {
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (relatedEntities.size() >= 10) {
+                            break;
+                        }
+                    }
+                }
+
             } catch (Exception e) {
                 log.warn("解析章节事实失败: chapterId={}", chapter.getId());
             }
@@ -493,7 +536,109 @@ public class EncyclopediaController {
 
         conceptInfo.put("excerpts", excerpts.size() > 5 ? excerpts.subList(0, 5) : excerpts);
         conceptInfo.put("related_concepts", new ArrayList<>(relatedConcepts));
+        conceptInfo.put("related_entities", relatedEntities);
 
         return ResponseEntity.ok(conceptInfo);
+    }
+
+    /**
+     * 获取实体相关的场景
+     */
+    @GetMapping("/{name}/scenes")
+    public ResponseEntity<?> getEntityScenes(
+            @PathVariable String novelId,
+            @PathVariable String name) {
+
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        List<ChapterFact> facts = chapterFactRepository.findByNovelId(novelId);
+
+        for (ChapterFact fact : facts) {
+            try {
+                // 解析 scenes_json
+                String scenesJson = fact.getScenesJson();
+                if (scenesJson == null || scenesJson.isEmpty()) {
+                    continue;
+                }
+
+                JsonNode scenesRoot = objectMapper.readTree(scenesJson);
+                JsonNode scenesArray = scenesRoot.get("scenes");
+                if (scenesArray == null || !scenesArray.isArray()) {
+                    continue;
+                }
+
+                int chapter = fact.getChapterId().intValue();
+
+                for (JsonNode scene : scenesArray) {
+                    // 检查实体是否出现在场景中
+                    List<String> charNames = new ArrayList<>();
+                    JsonNode characters = scene.get("characters");
+                    if (characters != null && characters.isArray()) {
+                        for (JsonNode c : characters) {
+                            if (c.isTextual()) {
+                                charNames.add(c.asText());
+                            } else if (c.has("name")) {
+                                charNames.add(c.get("name").asText());
+                            }
+                        }
+                    }
+
+                    String location = scene.has("location") ? scene.get("location").asText() : "";
+                    String summary = scene.has("summary") ? scene.get("summary").asText() : "";
+                    if (summary.isEmpty() && scene.has("description")) {
+                        summary = scene.get("description").asText();
+                    }
+
+                    boolean found = charNames.contains(name) || name.equals(location) || summary.contains(name);
+
+                    if (found) {
+                        // 确定角色
+                        String role = "提及";
+                        if (name.equals(location)) {
+                            role = "场所";
+                        } else if (charNames.contains(name)) {
+                            // 检查 character_roles
+                            JsonNode characterRoles = scene.get("character_roles");
+                            if (characterRoles != null && characterRoles.isArray()) {
+                                for (JsonNode cr : characterRoles) {
+                                    if (cr.has("name") && name.equals(cr.get("name").asText())) {
+                                        role = cr.has("role") ? cr.get("role").asText() : "配";
+                                        break;
+                                    }
+                                }
+                            }
+                            if (role.equals("提及")) {
+                                role = "出场";
+                            }
+                        }
+
+                        Map<String, Object> sceneResult = new LinkedHashMap<>();
+                        sceneResult.put("chapter", chapter);
+                        sceneResult.put("index", scene.has("index") ? scene.get("index").asInt() : 0);
+                        sceneResult.put("title", scene.has("title") ? scene.get("title").asText() :
+                                (scene.has("heading") ? scene.get("heading").asText() : ""));
+                        sceneResult.put("location", location);
+                        sceneResult.put("emotional_tone", scene.has("emotional_tone") ? scene.get("emotional_tone").asText() : "");
+                        sceneResult.put("summary", summary.length() > 80 ? summary.substring(0, 80) : summary);
+                        sceneResult.put("role", role);
+
+                        result.add(sceneResult);
+
+                        if (result.size() >= 30) {
+                            break;
+                        }
+                    }
+                }
+
+                if (result.size() >= 30) {
+                    break;
+                }
+
+            } catch (Exception e) {
+                log.warn("解析场景失败: chapterId={}, error={}", fact.getChapterId(), e.getMessage());
+            }
+        }
+
+        return ResponseEntity.ok((Object) result);
     }
 }
