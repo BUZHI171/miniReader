@@ -32,8 +32,8 @@ public class TimelineController {
     @GetMapping
     public ResponseEntity<Map<String, Object>> getTimeline(
             @PathVariable String novelId,
-            @RequestParam(required = false) Integer chapterStart,
-            @RequestParam(required = false) Integer chapterEnd) {
+            @RequestParam(required = false, name = "chapter_start") Integer chapterStart,
+            @RequestParam(required = false, name = "chapter_end") Integer chapterEnd) {
 
         if (!novelRepository.existsById(novelId)) {
             return ResponseEntity.notFound().build();

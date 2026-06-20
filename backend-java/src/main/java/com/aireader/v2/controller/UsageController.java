@@ -46,6 +46,7 @@ public class UsageController {
                 : "{}";
 
             UsageEvent event = UsageEvent.builder()
+                    .id(usageEventRepository.getMaxId() + 1)
                     .eventType(body.getEvent_type())
                     .metadata(metadataJson)
                     .createdAt(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
@@ -77,6 +78,7 @@ public class UsageController {
 
         try {
             UsageEvent event = UsageEvent.builder()
+                    .id(usageEventRepository.getMaxId() + 1)
                     .eventType(event_type)
                     .metadata(metadata != null ? metadata : "{}")
                     .createdAt(LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))

@@ -38,6 +38,12 @@ public interface UsageEventRepository extends JpaRepository<UsageEvent, Long> {
     long getTotalCount();
 
     /**
+     * 获取最大 ID
+     */
+    @Query("SELECT COALESCE(MAX(e.id), 0) FROM UsageEvent e")
+    long getMaxId();
+
+    /**
      * 清除所有事件
      */
     @Modifying
